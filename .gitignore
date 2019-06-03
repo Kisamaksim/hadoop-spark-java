@@ -1,0 +1,5 @@
+#ignore list
+target/
+.idea/
+*.iml
+
