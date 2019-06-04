@@ -14,6 +14,5 @@ RUN apk add --no-cache curl bash openjdk8-jre python3 py-pip nss \
       && rm spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz \
       && cd /
 
-# Fix the value of PYTHONHASHSEED
 # Note: this is needed when you use Python 3.3 or greater
 ENV PYTHONHASHSEED 1

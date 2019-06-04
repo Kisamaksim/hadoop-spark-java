@@ -32,6 +32,7 @@ public class Main {
                                             + "\\[([\\w:/]+\\s[+\\-]\\d{4})] \"(\\S+)"
                                             + " (\\S+)\\s*(\\S+)?\\s*\" (\\d{3}) (\\S+)";
     private static Pattern compile = Pattern.compile(LOG_REGEX);
+    private static SimpleDateFormat format = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH);
     
     public static void main(String[] args) {
         SparkConf sparkConf = new SparkConf();
@@ -75,7 +76,6 @@ public class Main {
     //результирующего файла комбинации, где количество событий в сумме было
     //меньше 10.
     private static void taskTwo(JavaRDD<String> rdd) {
-        SimpleDateFormat format = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH);
         JavaPairRDD<Tuple3<Date, String, String>, Integer> result = rdd.filter(log -> {
             Matcher matcher = compile.matcher(log);
             return matcher.matches();
@@ -99,14 +99,7 @@ public class Main {
     //Произвести расчет скользящим окном в одну неделю количества запросов
     //закончившихся с кодами 4xx и 5xx
     private static void taskThree(JavaRDD<String> rdd) {
-        SimpleDateFormat format = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH);
         SimpleDateFormat newFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
-        StructField[] structFields = new StructField[]{
-                new StructField("date", DataTypes.StringType, false, Metadata.empty()),
-                new StructField("count", DataTypes.IntegerType, false, Metadata.empty())
-        };
-        StructType structType = new StructType(structFields);
-        SparkSession currentSession = SparkSession.builder().getOrCreate();
         JavaRDD<Row> rowJavaRDD = rdd.filter(log -> {
             Matcher matcher = compile.matcher(log);
             if (matcher.find()) {
@@ -123,10 +116,19 @@ public class Main {
                 return RowFactory.create(newFormat.parse("1960-01-01").toString(), 1);
             }
         });
+        
+        StructField[] structFields = new StructField[]{
+                new StructField("date", DataTypes.StringType, false, Metadata.empty()),
+                new StructField("count", DataTypes.IntegerType, false, Metadata.empty())
+        };
+        StructType structType = new StructType(structFields);
+        SparkSession currentSession = SparkSession.builder().getOrCreate();
+        
         Dataset<Row> rowDataset = currentSession.createDataFrame(rowJavaRDD, structType)
                 .withColumn("date", col("date").cast("date"))
                 .groupBy(window(col("date"), "1 week", "1 day"))
                 .agg(sum("count")).orderBy("window");
+        
         Row[] rows = (Row[]) rowDataset.collect();
         for (Row row : rows) {
             System.out.println(row.toString());
