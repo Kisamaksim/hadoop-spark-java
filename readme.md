@@ -14,7 +14,7 @@
     - spark-master
         - docker build -t spark-master:mult .
         - docker run -d -p 8080:8080 -p 7077:7077 --name spark-master spark-master:mult
-    - spark-worker (в Dockerfile нужно установить установить IP машины, где стартован spark-master, для их коннекта)
+    - spark-worker (в Dockerfile нужно установить IP машины, где стартован spark-master, для их коннекта)
         - docker build -t spark-worker:mult .
         - docker run -d -p 8081:8081 --name spark-worker spark-worker:mult
 2. Собрать проект mvn clean package
